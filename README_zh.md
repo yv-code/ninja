@@ -116,7 +116,10 @@
 - `--bind`，环境变量 `BIND`， 服务监听地址: 默认0.0.0.0:7999，
 - `--tls-cert`，环境变量 `TLS_CERT`，TLS证书公钥，支持格式: EC/PKCS8/RSA
 - `--tls-key`，环境变量 `TLS_KEY`，TLS证书私钥
-- `--proxies`，代理，支持代理池，多个代理使用`,`隔开，格式: protocol://user:pass@ip:port，如果本地IP被Ban，使用代理池时需要关闭直连IP使用，`--disable-direct`关闭直连，否则会根据负载均衡使用你被Ban的本地IP
+- `--proxies`，代理，支持代理池，多个代理使用`,`隔开，格式: protocol://user:pass@ip:port
+  - 高阶用法
+  > 分代理内置协议和类型使用，内置协议: `all/api/auth/arkose`，其中`all`针对所有客户端，`api`针对所有`OpenAI API`，`auth`针对授权/登录，`arkose`针对ArkoseLabs；代理的类型: `interface/proxy/ipv6_subnet`，其中`interface`表示绑定的出口`IP`地址，`proxy`表示上游代理协议: `http/https/socks5`，`ipv6_subnet`表示用Ipv6字网网段内随机IP地址作为代理。例子: `all|socks5://192.168.1.1:1080, api|10.0.0.1, auth|2001:db8::/32, http://192.168.1.1:1081`，不带内置协议`all/api/auth/arkose`，则默认为`all`。`ipv6_subnet`存在时默认优先使用。
+- `--enable-direct`，开启直连，将绑定`interface`出口的IP的加入代理池
 - `--workers`，工作线程: 默认1
 - `--disable-webui`, 如果不想使用默认自带的WebUI，使用此参数关闭
 - `--enable-file-proxy`，环境变量`ENABLE_FILE_PROXY`，开启文件上下传API代理
@@ -157,7 +160,7 @@ opkg install luci-i18n-ninja-zh-cn_1.1.6-1_all.ipk
 docker run --rm -it -p 7999:7999 --name=ninja \
   -e WORKERS=1 \
   -e LOG=info \
-  gngpp/ninja:latest run
+  ghcr.io/gngpp/ninja:latest run
 ```
 
 - Docker Compose
@@ -169,13 +172,13 @@ version: '3'
 
 services:
   ninja:
-    image: ghcr.io/gngpp/ninja:latest
+    image: gngpp/ninja:latest
     container_name: ninja
     restart: unless-stopped
     environment:
       - TZ=Asia/Shanghai
       - PROXIES=socks5://warp:10000
-    command: run --disable-direct
+    command: run
     ports:
       - "8080:7999"
     depends_on:
@@ -236,14 +239,14 @@ Options:
           Server worker-pool size (Recommended number of CPU cores) [default: 1]
       --concurrent-limit <CONCURRENT_LIMIT>
           Enforces a limit on the concurrent number of requests the underlying [default: 1024]
+      --enable-direct
+          Enable direct connection [env: ENABLE_DIRECT=]
   -x, --proxies <PROXIES>
-          Server proxies pool, Only support http/https/socks5 protocol [env: PROXIES=]
-  -i, --interface <INTERFACE>
-          Bind address for outgoing connections (or IPv6 subnet fallback to Ipv4) [env: INTERFACE=]
-  -I, --ipv6-subnet <IPV6_SUBNET>
-          IPv6 subnet, Example: 2001:19f0:6001:48e4::/64 [env: IPV6_SUBNET=]
-      --disable-direct
-          Disable direct connection [env: DISABLE_DIRECT=]
+          Request client proxy, support multiple proxy, use ',' to separate
+          Format: proto|type
+          Proto: all/api/auth/arkose, default: all
+          Type: interface/proxy/ipv6 subnet，proxy type only support: socks5/http/https
+          Example: all|socks5://192.168.1.1:1080, api|10.0.0.1, auth|2001:db8::/32, http://192.168.1.1:1081 [env: PROXIES=]
       --cookie-store
           Enabled Cookie Store [env: COOKIE_STORE=]
       --timeout <TIMEOUT>

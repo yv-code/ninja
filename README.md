@@ -116,7 +116,10 @@ Sending `GPT-4/GPT-3.5/Creating API-Key` dialog requires sending `Arkose Token` 
 - `--bind`, environment variable `BIND`, service listening address: default 0.0.0.0:7999,
 - `--tls-cert`, environment variable `TLS_CERT`', TLS certificate public key. Supported format: EC/PKCS8/RSA
 - `--tls-key`, environment variable `TLS_KEY`, TLS certificate private key
-- `--proxies`, Proxy, supports proxy pool, multiple proxies are separated by `,`, format: protocol://user:pass@ip:port, if the local IP is banned, you need to turn off the use of direct IP when using the proxy pool, `--disable-direct` turns off direct connection, otherwise your banned local IP will be used according to load balancing
+- `--proxies`, proxy, supports proxy pool, multiple proxies are separated by `,`, format: protocol://user:pass@ip:port
+  - Advanced usage
+  > Used by built-in protocols and types of agents, built-in protocols: `all/api/auth/arkose`, where `all` is for all clients, `api` is for all `OpenAI API`, `auth` is for authorization/login, `arkose` is for ArkoseLabs; the type of proxy: `interface/proxy/ipv6_subnet`, where `interface` represents the bound export `IP` address, `proxy` represents the upstream proxy protocol: `http/https/socks5`, `ipv6_subnet` Indicates that a random IP address in the Ipv6 network segment is used as a proxy. Example: `all|socks5://192.168.1.1:1080, api|10.0.0.1, auth|2001:db8::/32, http://192.168.1.1:1081`, without built-in protocol `all/api /auth/arkose`, the default is `all`. `ipv6_subnet` is used by default when present.
+- `--enable-direct`, enable direct connection, add the IP bound to the `interface` export to the proxy pool
 - `--workers`, worker threads: default 1
 - `--disable-webui`, if you don’t want to use the default built-in WebUI, use this parameter to turn it off
 - `--enable-file-proxy`, environment variable `ENABLE_FILE_PROXY`, turns on the file upload and download API proxy
@@ -130,8 +133,8 @@ Sending `GPT-4/GPT-3.5/Creating API-Key` dialog requires sending `Arkose Token` 
 Making [Releases](https://github.com/gngpp/ninja/releases/latest) has a precompiled deb package, binaries, in Ubuntu, for example:
 
 ```shell
-wget https://github.com/gngpp/ninja/releases/download/v0.8.5/ninja-0.8.5-x86_64-unknown-linux-musl.tar.gz
-tar -xf ninja-0.8.5-x86_64-unknown-linux-musl.tar.gz
+wget https://github.com/gngpp/ninja/releases/download/v0.8.6/ninja-0.8.6-x86_64-unknown-linux-musl.tar.gz
+tar -xf ninja-0.8.6-x86_64-unknown-linux-musl.tar.gz
 ./ninja run
 ```
 
@@ -140,11 +143,11 @@ tar -xf ninja-0.8.5-x86_64-unknown-linux-musl.tar.gz
 There are pre-compiled ipk files in GitHub [Releases](https://github.com/gngpp/ninja/releases/latest), which currently provide versions of aarch64/x86_64 and other architectures. After downloading, use opkg to install, and use nanopi r4s as example:
 
 ```shell
-wget https://github.com/gngpp/ninja/releases/download/v0.8.5/ninja_0.8.5_aarch64_generic.ipk
-wget https://github.com/gngpp/ninja/releases/download/v0.8.5/luci-app-ninja_1.1.6-1_all.ipk
-wget https://github.com/gngpp/ninja/releases/download/v0.8.5/luci-i18n-ninja-zh-cn_1.1.6-1_all.ipk
+wget https://github.com/gngpp/ninja/releases/download/v0.8.6/ninja_0.8.6_aarch64_generic.ipk
+wget https://github.com/gngpp/ninja/releases/download/v0.8.6/luci-app-ninja_1.1.6-1_all.ipk
+wget https://github.com/gngpp/ninja/releases/download/v0.8.6/luci-i18n-ninja-zh-cn_1.1.6-1_all.ipk
 
-opkg install ninja_0.8.5_aarch64_generic.ipk
+opkg install ninja_0.8.6_aarch64_generic.ipk
 opkg install luci-app-ninja_1.1.6-1_all.ipk
 opkg install luci-i18n-ninja-zh-cn_1.1.6-1_all.ipk
 ```
@@ -157,7 +160,7 @@ opkg install luci-i18n-ninja-zh-cn_1.1.6-1_all.ipk
 docker run --rm -it -p 7999:7999 --name=ninja \
   -e WORKERS=1 \
   -e LOG=info \
-  gngpp/ninja:latest run
+  ghcr.io/gngpp/ninja:latest run
 ```
 
 - Docker Compose
@@ -169,13 +172,13 @@ version: '3'
 
 services:
   ninja:
-    image: ghcr.io/gngpp/ninja:latest
+    image: gngpp/ninja:latest
     container_name: ninja
     restart: unless-stopped
     environment:
       - TZ=Asia/Shanghai
       - PROXIES=socks5://warp:10000
-    command: run --disable-direct
+    command: run
     ports:
       - "8080:7999"
     depends_on:
@@ -236,14 +239,14 @@ Options:
           Server worker-pool size (Recommended number of CPU cores) [default: 1]
       --concurrent-limit <CONCURRENT_LIMIT>
           Enforces a limit on the concurrent number of requests the underlying [default: 1024]
+      --enable-direct
+          Enable direct connection [env: ENABLE_DIRECT=]
   -x, --proxies <PROXIES>
-          Server proxies pool, Only support http/https/socks5 protocol [env: PROXIES=]
-  -i, --interface <INTERFACE>
-          Bind address for outgoing connections (or IPv6 subnet fallback to Ipv4) [env: INTERFACE=]
-  -I, --ipv6-subnet <IPV6_SUBNET>
-          IPv6 subnet, Example: 2001:19f0:6001:48e4::/64 [env: IPV6_SUBNET=]
-      --disable-direct
-          Disable direct connection [env: DISABLE_DIRECT=]
+          Request client proxy, support multiple proxy, use ',' to separate
+          Format: proto|type
+          Proto: all/api/auth/arkose, default: all
+          Type: interface/proxy/ipv6 subnet，proxy type only support: socks5/http/https
+          Example: all|socks5://192.168.1.1:1080, api|10.0.0.1, auth|2001:db8::/32, http://192.168.1.1:1081 [env: PROXIES=]
       --cookie-store
           Enabled Cookie Store [env: COOKIE_STORE=]
       --timeout <TIMEOUT>
